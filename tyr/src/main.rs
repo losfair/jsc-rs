@@ -2,6 +2,10 @@ use clap::{self, Parser};
 use jsc::{ClassAttribute, ClassDefinition, Context, PropertyAttributes};
 use tokio::fs;
 
+#[cfg(all(not(all(target_os = "linux", target_env = "musl", target_arch = "aarch64")),))]
+#[global_allocator]
+static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+
 mod console;
 
 #[derive(Parser)]
@@ -26,8 +30,20 @@ async fn main() -> Result<(), anyhow::Error> {
     .into_class()?
     .make_object(&ctx);
   let log = ctx.create_function("log", Some(console::console_log))?;
+  let info = ctx.create_function("info", Some(console::console_log))?;
+  let warn = ctx.create_function("warn", Some(console::console_log))?;
+  let error = ctx.create_function("error", Some(console::console_log))?;
   console
     .set_property("log", &log, PropertyAttributes::None)
+    .unwrap();
+  console
+    .set_property("info", &info, PropertyAttributes::None)
+    .unwrap();
+  console
+    .set_property("warn", &warn, PropertyAttributes::None)
+    .unwrap();
+  console
+    .set_property("error", &error, PropertyAttributes::None)
     .unwrap();
   global
     .set_property("console", &console, PropertyAttributes::DontDelete)
